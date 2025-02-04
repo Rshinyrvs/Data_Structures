@@ -135,4 +135,40 @@ dm_7 <- merge(dm_6,RP5, by="SubjectID")
 ds_2 <- ds_1 %>% 
         dplyr::filter(SubjectStatus=="Randomized") %>%
         mutate(DTHFL = ifelse(DSDECOD=="DEATH", "Y", "N")) %>%
-        select(SubjectID, DSDECOD, DTHFL, DSDT,…
+        select(SubjectID, DSDECOD, DTHFL, DSDT, DSETDT)
+
+#If DTHFL='Y' then convert RAW.DS.DSDT/DSETDT into character value; else set to missing
+
+#if DTHFL=="N" and DSDT ne " " then DTHDT=DSDT
+#else if DTHFL=="N" and DSDT = " " and DSETDT ne " " then DTHDT=DSETDT
+
+ds_3 <- ds_2 %>%
+        mutate(DTHDTC = ifelse(DTHFL=="N" & is.na(DSDT)==FALSE, as.character(DSDT), 
+                       ifelse(DTHFL=="N" & is.na(DSDT)==TRUE & is.na(DSETDT)==FALSE, as.character(DSETDT)," ")))
+                       
+dm_8 <- merge(dm_7,ds_3, by="SubjectID")
+
+#SiteID
+
+dm_8 <- mutate(dm_8,SITEID="001")
+
+#Convert RAW.DM.BRTHDT into character value
+
+dm_8 <- mutate(dm_8, BRTHDTC=as.character(BRTHDT))
+
+#RAW.DM.AGECAL
+
+dm_8 <- mutate(dm_8, AGE=lubridate::time_length(difftime(RFICDT+1, BRTHDT), "years"))
+dm_8 <- mutate(dm_8, AGEU="YEARS")
+
+#if RAW.DM.SEX='Male' then set 'M'
+#else if RAW.DM.SEX='Female' then set 'F'
+
+dm_9 <- dm_8 %>%
+        mutate(SEX= ifelse(SEX=="Male","M",ifelse(SEX=="Female","F","")))
+
+dm_9 <- mutate(dm_9, COUNTRY="USA")
+
+dm_10 <- select(dm_9,STUDYID,DOMAIN,USUBJID,SUBJID,RFSTDTC,RFENDTC,RFXSTDTC,RFXENDTC,
+                RFICDTC,RFPENDTC,DTHFL,DTHDTC,SITEID,BRTHDTC,AGE,AGEU,SEX,RACE,ETHNIC,
+                COUNTRY)
